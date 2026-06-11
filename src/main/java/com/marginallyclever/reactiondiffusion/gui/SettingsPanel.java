@@ -1,10 +1,10 @@
-package com.marginallyclever.reactiondiffusion;
+package com.marginallyclever.reactiondiffusion.gui;
 
+import com.marginallyclever.reactiondiffusion.Model;
 import io.github.andrewauclair.moderndocking.ui.DefaultDockingPanel;
 
 import javax.swing.*;
 import java.awt.*;
-import java.security.Provider;
 import java.util.function.Consumer;
 
 public class SettingsPanel extends DefaultDockingPanel {

@@ -1,5 +1,6 @@
-package com.marginallyclever.reactiondiffusion;
+package com.marginallyclever.reactiondiffusion.gui;
 
+import com.marginallyclever.reactiondiffusion.Model;
 import io.github.andrewauclair.moderndocking.Dockable;
 import io.github.andrewauclair.moderndocking.DockableTabPreference;
 import io.github.andrewauclair.moderndocking.DockingRegion;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.util.function.Consumer;
 
 public class MainWindow extends JFrame {
     private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
@@ -95,13 +97,9 @@ public class MainWindow extends JFrame {
         var start = new JMenu("Starter");
         file.add(start);
 
-        var startRing = new JMenuItem("Ring");
-        start.add(startRing);
-        startRing.addActionListener(e -> model.startRing());
-
-        var startSquare = new JMenuItem("Square");
-        start.add(startSquare);
-        startSquare.addActionListener(e -> model.startSquare());
+        addStarter(start,"Ring",e->model.startRing());
+        addStarter(start,"Square",e->model.startSquare());
+        addStarter(start,"Gradient",e->model.startGradient());
 
         file.addSeparator();
 
@@ -110,5 +108,11 @@ public class MainWindow extends JFrame {
         file.add(quit);
 
         return file;
+    }
+
+    private void addStarter(JMenu menu,String label, Consumer<Model> starter) {
+        var item = new JMenuItem(label);
+        item.addActionListener(e -> starter.accept(model));
+        menu.add(item);
     }
 }

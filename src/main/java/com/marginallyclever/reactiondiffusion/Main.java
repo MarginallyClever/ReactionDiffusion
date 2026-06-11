@@ -1,6 +1,7 @@
 package com.marginallyclever.reactiondiffusion;
 
 import com.formdev.flatlaf.FlatDarkLaf;
+import com.marginallyclever.reactiondiffusion.gui.MainWindow;
 
 import javax.swing.*;
 

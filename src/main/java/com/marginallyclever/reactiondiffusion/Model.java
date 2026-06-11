@@ -11,6 +11,10 @@ import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Reaction diffusion model.
@@ -20,6 +24,7 @@ public class Model {
 
     private AB [] ab;
     private AB [] ab2;
+    private List<Pixel> pixels = new ArrayList<>();
 
     private final double [] laplacianMatrix = {
             0.05, 0.20, 0.05,
@@ -34,7 +39,7 @@ public class Model {
     private double dt = 0.0;
 
     private final EventListenerList listenerList = new EventListenerList();
-
+    private final Lock lock = new ReentrantLock();
 
     public boolean getInitialized() {
         return (ab[0]!=null);
@@ -43,12 +48,29 @@ public class Model {
     public void setSize(int width,int height) {
         if (width <= 0 || height <= 0) return;
 
-        this.width = width;
-        this.height = height;
-        ab = new AB[this.width * this.height];
-        ab2 = new AB[this.width * this.height];
+        lock.lock();
+        try {
+            this.width = width;
+            this.height = height;
+            int size = this.width * this.height;
+            ab = new AB[size];
+            ab2 = new AB[size];
+            pixels.clear();
 
-        initializeAB();
+            for (int y = 0; y < height; ++y) {
+                for (int x = 0; x < width; ++x) {
+                    var index = y * width + x;
+                    ab[index] = new AB();
+                    ab2[index] = new AB();
+                    ab[index].a = 1.0;
+                    ab2[index].a = 1.0;
+                    pixels.add(new Pixel(x,y,index));
+                }
+            }
+        }
+        finally {
+            lock.unlock();
+        }
     }
 
     public void paint(int x, int y,double intensity) {
@@ -57,37 +79,34 @@ public class Model {
         p.b = Math.clamp(p.b + intensity,0,1);
     }
 
-    private void initializeAB() {
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                var index = y* width +x;
-                ab[index] = new AB();
-                ab2[index] = new AB();
-                ab[index].a = 1.0;
-                ab2[index].a = 1.0;
-            }
-        }
-    }
-
     public void performReactionDiffusion() {
-        for(int y = 0; y < height; y++) {
-            for(int x = 0; x < width; x++) {
-                AB laplacian = getLaplacian(x,y);
-                int index = y * width + x;
+        if(!lock.tryLock()) return;
+
+        try {
+            // run in parallel to use every CPU core.
+            pixels.stream().parallel().forEach(p -> {
+                int x = p.x;
+                int y = p.y;
+                AB laplacian = getLaplacian(x, y);
+                int index = p.index;
                 var p0 = ab[index];
                 var p1 = ab2[index];
                 double a = p0.a;
                 double b = p0.b;
                 double abb = a * b * b;
-                p1.a = a + (diffusionA * laplacian.a - abb + feedRate * (1.0 - a)     ) * dt;
+                p1.a = a + (diffusionA * laplacian.a - abb + feedRate * (1.0 - a)) * dt;
                 p1.b = b + (diffusionB * laplacian.b + abb - (killRate + feedRate) * b) * dt;
-            }
-        }
+                p1.a = Math.clamp(p1.a,0,1);
+                p1.b = Math.clamp(p1.b,0,1);
+            });
 
-        // swap the buffers.
-        var temp = ab;
-        ab = ab2;
-        ab2 = temp;
+            // swap the buffers.
+            var temp = ab;
+            ab = ab2;
+            ab2 = temp;
+        } finally {
+            lock.unlock();
+        }
     }
 
     private AB getLaplacian(int px, int py) {
@@ -172,17 +191,23 @@ public class Model {
     }
 
     private void copyImageToAB(BufferedImage src) {
-        int w = Math.min(src.getWidth(), this.width);
-        int h = Math.min(src.getHeight(), this.height);
-        for(int y=0;y<h;y++) {
-            for(int x=0;x<w;x++) {
-                var p0 = ab[y*this.width +x];
-                var color = new Color(src.getRGB(x,y));
-                double intensity = (color.getRed()/255.0 + color.getGreen()/255.0 + color.getBlue()/255.0) / 3.0;
-                // intensity 1 is full A.  intensity 0 is full B.
-                p0.a = Math.clamp(intensity-0.5,0.0,1.0)*2.0;
-                p0.b = Math.clamp(0.5-intensity,0.0,1.0)*2.0;
+        lock.lock();
+        try {
+            int w = Math.min(src.getWidth(), this.width);
+            int h = Math.min(src.getHeight(), this.height);
+            for (int y = 0; y < h; y++) {
+                for (int x = 0; x < w; x++) {
+                    var p0 = ab[y * this.width + x];
+                    var color = new Color(src.getRGB(x, y));
+                    double intensity = (color.getRed() / 255.0 + color.getGreen() / 255.0 + color.getBlue() / 255.0) / 3.0;
+                    // intensity 1 is full A.  intensity 0 is full B.
+                    p0.a = Math.clamp(intensity - 0.5, 0.0, 1.0) * 2.0;
+                    p0.b = Math.clamp(0.5 - intensity, 0.0, 1.0) * 2.0;
+                }
             }
+        }
+        finally {
+            lock.unlock();
         }
     }
 
@@ -219,6 +244,23 @@ public class Model {
         copyImageToAB(image);
     }
 
+    public void startGradient() {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        var g = image.getGraphics();
+        int min = Math.min(width, height);
+        g.setColor(Color.WHITE);
+        g.fillRect(0, 0, width, height);
+        double w2 = width;
+        for(int x=0;x<width;x++) {
+            int intensity = (int) (Math.abs(x-w2)/w2*255);
+            intensity = Math.clamp(intensity, 0, 255);
+            g.setColor(new Color(intensity,intensity,intensity));
+            g.drawLine(x,0,x,height);
+        }
+
+        copyImageToAB(image);
+    }
+
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         listenerList.add(PropertyChangeListener.class, listener);
     }
@@ -231,5 +273,28 @@ public class Model {
         for (PropertyChangeListener listener : listenerList.getListeners(PropertyChangeListener.class)) {
             listener.propertyChange(evt);
         }
+    }
+
+    public void closeLock() {
+        lock.lock();
+    }
+
+    public void unlock() {
+        lock.unlock();
+    }
+
+    public AB[] getABCopy() {
+        AB[] copy = new AB[width * height];
+        lock.lock();
+        try {
+            int i=0;
+            for (AB c : ab) {
+                copy[i++] = new AB(c);
+            }
+        }
+        finally {
+            lock.unlock();
+        }
+        return copy;
     }
 }

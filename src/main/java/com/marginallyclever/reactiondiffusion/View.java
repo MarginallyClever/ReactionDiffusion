@@ -4,7 +4,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 
 /**
- * Renders the model
+ * Renders the model to a BufferedImage
  */
 public class View {
     private final Model model;
@@ -38,23 +38,11 @@ public class View {
     double map(double value, double min1, double max1, double min2, double max2) {
         return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
     }
-    
-    public void updateImage() {
-        // use AB to update the image pixels.
-        double maxA=0;
-        double maxB=0;
-/*
-        for(int x=0;x<w;x++) {
-            for (int y = 0; y < h; y++) {
-                var p0 = ab[y * w + x];
-                maxA = Math.max(p0.a, maxA);
-                maxB = Math.max(p0.b, maxB);
-            }
-        }*/
-        if(maxA==0) maxA=1;
-        if(maxB==0) maxB=1;
 
-        var ab = model.getAB();
+    // use model AB values to update the image pixels.
+    public void updateImage() {
+        model.closeLock();
+        var ab = model.getABCopy();
 
         for(int x=0;x<width;x++) {
             for(int y=0;y<height;y++) {
@@ -63,14 +51,12 @@ public class View {
                 if(temp==0) temp=1.0;
                 var val = p0.a / temp;
 
-                int intensity = (int)map(val,0,1,0,255);
-                intensity = Math.clamp(intensity,0,255);
+                //int intensity = (int)Math.clamp(map(val,0,1,0,255),0,255);
                 //var c = new Color(intensity,intensity,intensity);
-                var c = rainbow(intensity/255.0);
+                var c = rainbow(val);
                 image.setRGB(x,y,c.getRGB());
             }
         }
-        //logger.debug("Max {}\t{}",maxA,maxB);
     }
 
     private Color rainbow(double v) {

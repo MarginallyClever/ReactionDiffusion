@@ -1,5 +1,7 @@
-package com.marginallyclever.reactiondiffusion;
+package com.marginallyclever.reactiondiffusion.gui;
 
+import com.marginallyclever.reactiondiffusion.Model;
+import com.marginallyclever.reactiondiffusion.View;
 import io.github.andrewauclair.moderndocking.ui.DefaultDockingPanel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -8,7 +10,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.awt.image.BufferedImage;
 
 /**
  * Displays the reaction/diffusion
@@ -100,7 +101,9 @@ public class OutputPanel extends DefaultDockingPanel {
 
         g.drawImage(view.getImage(), 0, 0, null);
 
-        model.performReactionDiffusion();
+        for(int i=0;i<10;++i) {
+            model.performReactionDiffusion();
+        }
     }
 
     private void setRenderHints(Graphics2D g2d) {

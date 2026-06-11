@@ -1,4 +1,4 @@
-package com.marginallyclever.reactiondiffusion;
+package com.marginallyclever.reactiondiffusion.gui;
 
 import io.github.andrewauclair.moderndocking.ui.DefaultDockingPanel;
 
