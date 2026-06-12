@@ -75,11 +75,15 @@ public class Model {
 
     public void paint(int x, int y,double intensity) {
         if(x<0 || x>= width || y<0 || y>= height) return;
-        var p = ab[y* width +x];
-        p.b = Math.clamp(p.b + intensity,0,1);
+        int index = y * width + x;
+        var p1 = ab[index];
+        var p2 = ab2[index];
+        p1.b = p2.b = Math.clamp(p1.b + intensity,0,1);
     }
 
     public void performReactionDiffusion() {
+        if(dt==0) return;
+
         if(!lock.tryLock()) return;
 
         try {
@@ -193,16 +197,19 @@ public class Model {
     private void copyImageToAB(BufferedImage src) {
         lock.lock();
         try {
-            int w = Math.min(src.getWidth(), this.width);
-            int h = Math.min(src.getHeight(), this.height);
+            int w = Math.min(src.getWidth(), width);
+            int h = Math.min(src.getHeight(), height);
             for (int y = 0; y < h; y++) {
                 for (int x = 0; x < w; x++) {
-                    var p0 = ab[y * this.width + x];
                     var color = new Color(src.getRGB(x, y));
                     double intensity = (color.getRed() / 255.0 + color.getGreen() / 255.0 + color.getBlue() / 255.0) / 3.0;
                     // intensity 1 is full A.  intensity 0 is full B.
-                    p0.a = Math.clamp(intensity - 0.5, 0.0, 1.0) * 2.0;
-                    p0.b = Math.clamp(0.5 - intensity, 0.0, 1.0) * 2.0;
+                    int index = y * width + x;
+                    var p0 = ab[index];
+                    var p1 = ab2[index];
+                    p0.a=p1.a=1;
+                    p0.b=p1.b=0;
+                    paint(x,y,Math.clamp(intensity, 0.0, 1.0));
                 }
             }
         }
@@ -247,12 +254,11 @@ public class Model {
     public void startGradient() {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
         var g = image.getGraphics();
-        int min = Math.min(width, height);
         g.setColor(Color.WHITE);
         g.fillRect(0, 0, width, height);
-        double w2 = width;
+        double w2 = width/2.0;
         for(int x=0;x<width;x++) {
-            int intensity = (int) (Math.abs(x-w2)/w2*255);
+            int intensity = 255 - (int) (Math.abs(x-w2)/w2*255);
             intensity = Math.clamp(intensity, 0, 255);
             g.setColor(new Color(intensity,intensity,intensity));
             g.drawLine(x,0,x,height);
@@ -273,14 +279,6 @@ public class Model {
         for (PropertyChangeListener listener : listenerList.getListeners(PropertyChangeListener.class)) {
             listener.propertyChange(evt);
         }
-    }
-
-    public void closeLock() {
-        lock.lock();
-    }
-
-    public void unlock() {
-        lock.unlock();
     }
 
     public AB[] getABCopy() {

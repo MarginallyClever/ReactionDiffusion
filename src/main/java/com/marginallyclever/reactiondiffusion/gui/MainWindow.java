@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 public class MainWindow extends JFrame {
     private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
     private final Model model = new Model();
+    private final OutputPanel output = new OutputPanel(model);
 
     public MainWindow() {
         super("Reaction Diffusion");
@@ -41,7 +42,6 @@ public class MainWindow extends JFrame {
         setVisible(true);
 
         AnchorDockable anchor = new AnchorDockable();
-        OutputPanel output = new OutputPanel(model);
         SettingsPanel settings = new SettingsPanel(model);
 
         Docking.registerDockable(anchor);
@@ -97,9 +97,18 @@ public class MainWindow extends JFrame {
         var start = new JMenu("Starter");
         file.add(start);
 
-        addStarter(start,"Ring",e->model.startRing());
-        addStarter(start,"Square",e->model.startSquare());
-        addStarter(start,"Gradient",e->model.startGradient());
+        addStarter(start,"Ring",e->{
+            model.startRing();
+            output.repaint();
+        });
+        addStarter(start,"Square",e->{
+            model.startSquare();
+            output.repaint();
+        });
+        addStarter(start,"Gradient",e->{
+            model.startGradient();
+            output.repaint();
+        });
 
         file.addSeparator();
 

@@ -41,7 +41,6 @@ public class View {
 
     // use model AB values to update the image pixels.
     public void updateImage() {
-        model.closeLock();
         var ab = model.getABCopy();
 
         for(int x=0;x<width;x++) {

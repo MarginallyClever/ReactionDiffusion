@@ -46,12 +46,29 @@ public class OutputPanel extends DefaultDockingPanel {
         addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mousePressed(java.awt.event.MouseEvent e) {
-                mousePressed=true;
+                if(e.getButton()==MouseEvent.BUTTON1) {
+                    mousePressed = true;
+                }
             }
 
             @Override
             public void mouseReleased(java.awt.event.MouseEvent e) {
-                mousePressed=false;
+                if(e.getButton()==MouseEvent.BUTTON1) {
+                    mousePressed = false;
+                }
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                if(e.getButton()==MouseEvent.BUTTON3) {
+
+                    var x = e.getX();
+                    var y = e.getY();
+                    var index = y * getWidth() + x;
+                    var point = model.getABCopy()[index];
+                    logger.info("{}x{} = {},{}",x,y,point.a,point.b);
+                }
             }
         });
     }
