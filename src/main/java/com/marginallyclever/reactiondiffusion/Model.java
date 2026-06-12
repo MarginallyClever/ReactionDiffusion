@@ -22,16 +22,21 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Model {
     private static final Logger logger = LoggerFactory.getLogger(Model.class);
 
-    private AB [] ab;
-    private AB [] ab2;
-    private List<Pixel> pixels = new ArrayList<>();
+    // where the simulation lives
+    private PetriDish[] petriDish;
+    // double buffer
+    private PetriDish[] petriDish2;
+    // indexing for multithreading
+    private final List<Pixel> pixels = new ArrayList<>();
 
     private final double [] laplacianMatrix = {
             0.05, 0.20, 0.05,
             0.20,-1.00, 0.20,
             0.05, 0.20, 0.05
     };
+    // size of simulation
     private int width, height;
+
     private double diffusionA = 1.0;
     private double diffusionB = 0.5;
     private double feedRate = 0.055;  // should be range 0...1?
@@ -42,7 +47,7 @@ public class Model {
     private final Lock lock = new ReentrantLock();
 
     public boolean getInitialized() {
-        return (ab[0]!=null);
+        return (petriDish[0]!=null);
     }
 
     public void setSize(int width,int height) {
@@ -53,17 +58,17 @@ public class Model {
             this.width = width;
             this.height = height;
             int size = this.width * this.height;
-            ab = new AB[size];
-            ab2 = new AB[size];
+            petriDish = new PetriDish[size];
+            petriDish2 = new PetriDish[size];
             pixels.clear();
 
             for (int y = 0; y < height; ++y) {
                 for (int x = 0; x < width; ++x) {
                     var index = y * width + x;
-                    ab[index] = new AB();
-                    ab2[index] = new AB();
-                    ab[index].a = 1.0;
-                    ab2[index].a = 1.0;
+                    petriDish[index] = new PetriDish();
+                    petriDish2[index] = new PetriDish();
+                    petriDish[index].a = 1.0;
+                    petriDish2[index].a = 1.0;
                     pixels.add(new Pixel(x,y,index));
                 }
             }
@@ -76,11 +81,17 @@ public class Model {
     public void paint(int x, int y,double intensity) {
         if(x<0 || x>= width || y<0 || y>= height) return;
         int index = y * width + x;
-        var p1 = ab[index];
-        var p2 = ab2[index];
+        var p1 = petriDish[index];
+        var p2 = petriDish2[index];
         p1.b = p2.b = Math.clamp(p1.b + intensity,0,1);
     }
 
+    /**
+     * <p>Simulate the diffusion and reaction - the heart of the simulation.</p>
+     * <p>To accelerate this time intensive calculation, the normal "iterate over all pixels in two loops"
+     * has been replaced with a streamed array of {@link Pixel} objects, which allows the use of all CPU cores.</p>
+     * <p>A double buffer system is used to ensure each iteration does not step on its own toes.</p>
+     */
     public void performReactionDiffusion() {
         if(dt==0) return;
 
@@ -89,12 +100,9 @@ public class Model {
         try {
             // run in parallel to use every CPU core.
             pixels.stream().parallel().forEach(p -> {
-                int x = p.x;
-                int y = p.y;
-                AB laplacian = getLaplacian(x, y);
-                int index = p.index;
-                var p0 = ab[index];
-                var p1 = ab2[index];
+                PetriDish laplacian = getLaplacian(p.x, p.y);
+                var p0 = petriDish[p.index];
+                var p1 = petriDish2[p.index];
                 double a = p0.a;
                 double b = p0.b;
                 double abb = a * b * b;
@@ -105,21 +113,21 @@ public class Model {
             });
 
             // swap the buffers.
-            var temp = ab;
-            ab = ab2;
-            ab2 = temp;
+            var temp = petriDish;
+            petriDish = petriDish2;
+            petriDish2 = temp;
         } finally {
             lock.unlock();
         }
     }
 
-    private AB getLaplacian(int px, int py) {
-        AB result = new AB();
+    private PetriDish getLaplacian(int px, int py) {
+        PetriDish result = new PetriDish();
         for (int y = 0; y < 3; ++y) {
             int y2 = Math.clamp(y + py - 1, 0, height-1);
             for (int x = 0; x < 3; ++x) {
                 int x2 = Math.clamp(x + px - 1, 0, width-1);
-                var p0 = ab[y2 * width + x2];
+                var p0 = petriDish[y2 * width + x2];
                 double scale = laplacianMatrix[y * 3 + x];
                 result.a += p0.a * scale;
                 result.b += p0.b * scale;
@@ -205,8 +213,8 @@ public class Model {
                     double intensity = (color.getRed() / 255.0 + color.getGreen() / 255.0 + color.getBlue() / 255.0) / 3.0;
                     // intensity 1 is full A.  intensity 0 is full B.
                     int index = y * width + x;
-                    var p0 = ab[index];
-                    var p1 = ab2[index];
+                    var p0 = petriDish[index];
+                    var p1 = petriDish2[index];
                     p0.a=p1.a=1;
                     p0.b=p1.b=0;
                     paint(x,y,Math.clamp(intensity, 0.0, 1.0));
@@ -218,8 +226,8 @@ public class Model {
         }
     }
 
-    public AB [] getAB() {
-        return ab;
+    public PetriDish[] getAB() {
+        return petriDish;
     }
 
     /**
@@ -281,13 +289,13 @@ public class Model {
         }
     }
 
-    public AB[] getABCopy() {
-        AB[] copy = new AB[width * height];
+    public PetriDish[] getABCopy() {
+        PetriDish[] copy = new PetriDish[width * height];
         lock.lock();
         try {
             int i=0;
-            for (AB c : ab) {
-                copy[i++] = new AB(c);
+            for (PetriDish c : petriDish) {
+                copy[i++] = new PetriDish(c);
             }
         }
         finally {
