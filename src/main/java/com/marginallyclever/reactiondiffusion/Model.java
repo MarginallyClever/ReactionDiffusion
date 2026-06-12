@@ -26,6 +26,8 @@ public class Model {
     private PetriDish[] petriDish;
     // double buffer
     private PetriDish[] petriDish2;
+    // to minimize ram thrashing
+    private PetriDish[] laplacianResults;
     // indexing for multithreading
     private final List<Pixel> pixels = new ArrayList<>();
 
@@ -65,6 +67,7 @@ public class Model {
             int size = this.width * this.height;
             petriDish = new PetriDish[size];
             petriDish2 = new PetriDish[size];
+            laplacianResults =  new PetriDish[size];
             pixels.clear();
 
             for (int y = 0; y < height; ++y) {
@@ -72,6 +75,7 @@ public class Model {
                     var index = y * width + x;
                     petriDish[index] = new PetriDish();
                     petriDish2[index] = new PetriDish();
+                    laplacianResults[index] = new PetriDish();
                     petriDish[index].a = 1.0;
                     petriDish2[index].a = 1.0;
                     pixels.add(new Pixel(x,y,index));
@@ -105,9 +109,10 @@ public class Model {
         try {
             // run in parallel to use every CPU core.
             pixels.stream().parallel().forEach(p -> {
-                PetriDish laplacian = getLaplacian(p.x, p.y);
+                getLaplacian(p);
                 var p0 = petriDish[p.index];
                 var p1 = petriDish2[p.index];
+                var laplacian = laplacianResults[p.index];
                 double a = p0.a;
                 double b = p0.b;
                 double abb = a * b * b;
@@ -126,8 +131,19 @@ public class Model {
         }
     }
 
-    private PetriDish getLaplacian(int px, int py) {
-        PetriDish result = new PetriDish();
+    /**
+     * Computes the Laplacian for the specified pixel by applying the Laplacian kernel
+     * to the neighboring pixels and accumulates the results in the associated {@link PetriDish}.
+     * The Laplacian transform is used in the simulation to model the diffusion process.
+     *
+     * @param p the {@link Pixel} for which the Laplacian is computed. The pixel's position and index
+     *          are used to retrieve its neighborhood and corresponding {@link PetriDish} in the simulation.
+     */
+    private void getLaplacian(Pixel p) {
+        PetriDish result = laplacianResults[p.index];
+        result.a = result.b = 0;
+        int px = p.x;
+        int py = p.y;
         for (int y = 0; y < 3; ++y) {
             int y2 = Math.clamp(y + py - 1, 0, height-1);
             for (int x = 0; x < 3; ++x) {
@@ -138,7 +154,6 @@ public class Model {
                 result.b += p0.b * scale;
             }
         }
-        return result;
     }
 
     public double getDt() {
@@ -294,7 +309,8 @@ public class Model {
         }
     }
 
-    public PetriDish[] getABCopy() {
+    public PetriDish[] getPetriDish() {
+        return petriDish;/*
         PetriDish[] copy = new PetriDish[width * height];
         lock.lock();
         try {
@@ -306,7 +322,7 @@ public class Model {
         finally {
             lock.unlock();
         }
-        return copy;
+        return copy;*/
     }
 
     public void paintCircle(int x, int y) {

@@ -1,6 +1,7 @@
 package com.marginallyclever.reactiondiffusion.gui;
 
 import com.marginallyclever.reactiondiffusion.Model;
+import com.marginallyclever.reactiondiffusion.View;
 import io.github.andrewauclair.moderndocking.Dockable;
 import io.github.andrewauclair.moderndocking.DockableTabPreference;
 import io.github.andrewauclair.moderndocking.DockingRegion;
@@ -21,7 +22,8 @@ import java.util.function.Consumer;
 public class MainWindow extends JFrame {
     private static final Logger logger = LoggerFactory.getLogger(MainWindow.class);
     private final Model model = new Model();
-    private final OutputPanel output = new OutputPanel(model);
+    private final View view = new View(model);
+    private final OutputPanel output = new OutputPanel(model,view);
 
     public MainWindow() {
         super("Reaction Diffusion");
@@ -41,7 +43,7 @@ public class MainWindow extends JFrame {
         setVisible(true);
 
         AnchorDockable anchor = new AnchorDockable();
-        SettingsPanel settings = new SettingsPanel(model);
+        SettingsPanel settings = new SettingsPanel(model,view);
 
         Docking.registerDockable(anchor);
         Docking.registerDockable(output);

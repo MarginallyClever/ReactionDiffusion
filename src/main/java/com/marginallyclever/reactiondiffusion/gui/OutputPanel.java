@@ -24,13 +24,13 @@ public class OutputPanel extends DefaultDockingPanel {
     private boolean mousePressed=false;
     private int mouseX,mouseY;
 
-    public OutputPanel(Model model) {
+    public OutputPanel(Model model,View view) {
         super("OutputPanel","Output");
         this.model = model;
-        this.view = new View(model);
+        this.view = view;
         setLayout(new BorderLayout());
 
-        renderTimer = new Timer(1000 / 30, e -> this.repaint());
+        renderTimer = new Timer(1000 / 60, e -> this.repaint());
 
         addMouseMotionListener(new MouseMotionAdapter() {
             @Override
@@ -67,7 +67,7 @@ public class OutputPanel extends DefaultDockingPanel {
                     var x = e.getX();
                     var y = e.getY();
                     var index = y * getWidth() + x;
-                    var point = model.getABCopy()[index];
+                    var point = model.getPetriDish()[index];
                     logger.info("{}x{} = {},{}",x,y,point.a,point.b);
                 }
             }

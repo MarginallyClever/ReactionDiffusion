@@ -1,6 +1,7 @@
 package com.marginallyclever.reactiondiffusion.gui;
 
 import com.marginallyclever.reactiondiffusion.Model;
+import com.marginallyclever.reactiondiffusion.View;
 import io.github.andrewauclair.moderndocking.ui.DefaultDockingPanel;
 
 import javax.swing.*;
@@ -10,7 +11,7 @@ import java.util.function.Consumer;
 public class SettingsPanel extends DefaultDockingPanel {
     private final Model model;
 
-    public SettingsPanel(Model model) {
+    public SettingsPanel(Model model, View view) {
         super("SettingsPanel", "Settings");
         this.setFloatingAllowed(true);
 
@@ -28,13 +29,8 @@ public class SettingsPanel extends DefaultDockingPanel {
         c.gridwidth=2;
         var t = new JButton("Yes");
         t.addActionListener(e -> {
-            if( model.getDt() == 0 ) {
-                model.setDt(1);
-                t.setText("No");
-            } else {
-                model.setDt(0);
-                t.setText("Yes");
-            }
+            if( model.getDt() == 0 ) {    model.setDt(1);    t.setText("No" );    }
+            else                     {    model.setDt(0);    t.setText("Yes");    }
         });
         add(t,c);
         c.gridy++;
@@ -45,6 +41,29 @@ public class SettingsPanel extends DefaultDockingPanel {
         addControl(c,"Feed rate",model.getFeedRate(), model::setFeedRate,"feedRate",0.01,0.10);
         addControl(c,"Kill rate",model.getKillRate(), model::setKillRate,"killRate",0.045,0.07);
         addControl(c,"Paint radius",model.getPaintRadius(),model::setPaintRadius,"paintRadius",1,50);
+        // add view color options
+        c.weightx=0;
+        c.gridx=0;
+        add(new JLabel("Color scheme"),c);
+        c.gridx++;
+        c.weightx=1;
+        c.gridwidth=1;
+        var comboBox = new JComboBox<>(new String[]{
+                "Grayscale",
+                "Reds",
+                "Greens",
+                "Blues",
+                "Pay-per-view TV"});
+        comboBox.setSelectedIndex(0);
+        add(comboBox,c);
+        comboBox.addActionListener(e -> view.setColorScheme(comboBox.getSelectedIndex()) );
+        c.weightx=0;
+        c.gridwidth=1;
+        c.gridx++;
+        var invert = new JCheckBox("Invert");
+        add(invert,c);
+        invert.addActionListener(e -> view.setInvertColors(invert.isSelected()) );
+        c.gridy++;
     }
 
     private void addControl(GridBagConstraints c,String label, double start, Consumer<Double> consumer,String propertyName) {
@@ -52,7 +71,7 @@ public class SettingsPanel extends DefaultDockingPanel {
     }
 
     private void addControl(GridBagConstraints c,String label, double start, Consumer<Double> consumer,String propertyName,double min,double max) {
-        c.weightx=0.0;
+        c.weightx=0;
         c.gridx=0;
         add(new JLabel(label),c);
         c.gridx++;
