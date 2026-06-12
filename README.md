@@ -1,5 +1,7 @@
 ## Reaction Diffusion
 
+![Screenshot 2026-06-11 120957.png](Screenshot%202026-06-11%20120957.png)
+
 This is a Java maven project that implements a reaction diffusion system in Java.
 
 It has a simple GUI to visualize the reaction diffusion process and control settings.
