@@ -22,8 +22,8 @@ public class SettingsPanel extends DefaultDockingPanel {
 
         addControl(c,"Diffusion A",model.getDiffusionA(), model::setDiffusionA,"diffusionA");
         addControl(c,"Diffusion B",model.getDiffusionB(), model::setDiffusionB,"diffusionB");
-        addControl(c,"Feed rate",model.getFeedRate(), model::setFeedRate,"feedRate");
-        addControl(c,"Kill rate",model.getKillRate(), model::setKillRate,"killRate");
+        addControl(c,"Feed rate",model.getFeedRate(), model::setFeedRate,"feedRate",0.01,0.10);
+        addControl(c,"Kill rate",model.getKillRate(), model::setKillRate,"killRate",0.045,0.07);
 
         c.gridx=0;
         add(new JLabel("Paused?"),c);
@@ -43,6 +43,10 @@ public class SettingsPanel extends DefaultDockingPanel {
     }
 
     private void addControl(GridBagConstraints c,String label, double start, Consumer<Double> consumer,String propertyName) {
+        addControl(c,label,start,consumer,propertyName,0.0,1.0);
+    }
+
+    private void addControl(GridBagConstraints c,String label, double start, Consumer<Double> consumer,String propertyName,double min,double max) {
         c.weightx=0.0;
         c.gridx=0;
         add(new JLabel(label),c);
@@ -51,23 +55,34 @@ public class SettingsPanel extends DefaultDockingPanel {
         int scale = 10000;
         double iscale = 1.0/(double)scale;
 
-        var slider = new JSlider(JSlider.HORIZONTAL, 0, scale, (int)(start*scale) );
+        var slider = new JSlider(JSlider.HORIZONTAL, (int)(min*scale), (int)(max*scale), (int)(start*scale) );
         slider.addChangeListener(e -> consumer.accept((double) ((JSlider) e.getSource()).getValue() *iscale) );
         c.weightx=1.0;
         add(slider,c);
         c.gridx++;
+        slider.addMouseWheelListener(e -> {
+            int notches = e.getWheelRotation();
+            slider.setValue(slider.getValue() + notches);
+        });
 
-        var a = new JSpinner(new SpinnerNumberModel(start, 0.0, 1.0, iscale));
-        a.addChangeListener(e -> consumer.accept((double) ((JSpinner) e.getSource()).getValue()) );
-        a.setEditor(new JSpinner.NumberEditor(a, "0.0000"));
+        var spinner = new JSpinner(new SpinnerNumberModel(start, min, max, iscale));
+        spinner.addChangeListener(e -> consumer.accept((double) ((JSpinner) e.getSource()).getValue()) );
+        spinner.setEditor(new JSpinner.NumberEditor(spinner, "0.0000"));
         c.weightx=0.0;
-        add(a, c);
+        add(spinner, c);
+        spinner.addMouseWheelListener(e->{
+            int notches = e.getWheelRotation();
+            double v = (double) spinner.getValue();
+            v += notches * iscale;
+            v = Math.clamp(v,min,max);
+            spinner.setValue(v);
+        });
 
         model.addPropertyChangeListener(e -> {
             if(e.getPropertyName().equals(propertyName)) {
                 double v = (double) e.getNewValue();
                 slider.setValue((int)(v*scale));
-                a.setValue(v);
+                spinner.setValue(v);
             }
         });
 
