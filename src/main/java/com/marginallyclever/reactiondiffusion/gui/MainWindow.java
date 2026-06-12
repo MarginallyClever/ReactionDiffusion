@@ -25,14 +25,13 @@ public class MainWindow extends JFrame {
 
     public MainWindow() {
         super("Reaction Diffusion");
-        logger.info("MainWindow created");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1400, 800);
         setLocationRelativeTo(null);
 
         // Initialise Modern Docking - Must happen before any dockable is created.
         Docking.initialize(this);
-        DockingUI.initialize();         // installs toolbar / tab chrome
+        DockingUI.initialize();  // installs toolbar / tab chrome
         Settings.setDefaultTabPreference(DockableTabPreference.TOP_ALWAYS);
         Settings.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 

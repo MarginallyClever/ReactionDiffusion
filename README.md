@@ -13,11 +13,11 @@ Resizing the window will restart the process.
 Execute `Main.main()` to start the app.  Maven will package a fat jar that can be executed with `java -jar target/reaction-diffusion-1.0.jar`.
 
 Mouse left click+drag will paint in the grid.
-
 Right click will report to the console the current state of the grid at the mouse position.
 
 Use `File > Starter` or `File > Load` to load an image in the top left corner as a reaction starting point.
 
+The Settings sliders and spinners respond to mouse wheel scrolling.  Give it a try!
 
 ## Threading
 

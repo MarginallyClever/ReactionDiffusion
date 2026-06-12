@@ -20,6 +20,7 @@ public class OutputPanel extends DefaultDockingPanel {
     private final Model model;
     private final View view;
     private final Timer renderTimer;
+    // track the user's mouse movement for painting.
     private boolean mousePressed=false;
     private int mouseX,mouseY;
 
@@ -73,17 +74,6 @@ public class OutputPanel extends DefaultDockingPanel {
         });
     }
 
-    private void paintCircle(int x, int y, int radius) {
-        for(int j = -radius; j < radius; j++) {
-            for(int k = -radius; k < radius; k++) {
-                var d = Math.sqrt(j*j+k*k);
-                d/=radius;
-                var clamped = Math.clamp(1.0-d,0,0.95);
-                model.paint(x+j, y+k, clamped);
-            }
-        }
-    }
-
     @Override
     public void addNotify() {
         super.addNotify();
@@ -111,7 +101,7 @@ public class OutputPanel extends DefaultDockingPanel {
         if(!model.getInitialized()) return;
 
         if(mousePressed) {
-            paintCircle(mouseX, mouseY, 10);
+            model.paintCircle(mouseX, mouseY);
         }
 
         view.updateImage();

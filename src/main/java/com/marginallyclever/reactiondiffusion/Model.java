@@ -37,13 +37,18 @@ public class Model {
     // size of simulation
     private int width, height;
 
+    // model parameters
     private double diffusionA = 1.0;
     private double diffusionB = 0.5;
     private double feedRate = 0.055;  // should be range 0...1?
     private double killRate = 0.062;
     private double dt = 0.0;
+    // mouse cursor paintbrush radius
+    private int radius=15;
 
+    // event hooks
     private final EventListenerList listenerList = new EventListenerList();
+    // locks so simulation and rendering don't smash each other
     private final Lock lock = new ReentrantLock();
 
     public boolean getInitialized() {
@@ -302,5 +307,27 @@ public class Model {
             lock.unlock();
         }
         return copy;
+    }
+
+    public void paintCircle(int x, int y) {
+        for(int j = -radius; j < radius; j++) {
+            for(int k = -radius; k < radius; k++) {
+                var d = Math.sqrt(j*j+k*k);
+                d/=radius;
+                var clamped = Math.clamp(1.0-d,0,0.95);
+                paint(x+j, y+k, clamped);
+            }
+        }
+    }
+
+    public int getPaintRadius() {
+        return radius;
+    }
+
+    public void setPaintRadius(double radius) {
+        if(this.radius == radius) return;
+
+        this.radius = Math.clamp((int)radius, 1,50);
+        firePropertyChange(new PropertyChangeEvent(this, "paintRadius", null, radius));
     }
 }

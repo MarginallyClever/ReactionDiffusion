@@ -12,6 +12,8 @@ public class SettingsPanel extends DefaultDockingPanel {
 
     public SettingsPanel(Model model) {
         super("SettingsPanel", "Settings");
+        this.setFloatingAllowed(true);
+
         this.model = model;
 
         setLayout(new GridBagLayout());
@@ -19,13 +21,8 @@ public class SettingsPanel extends DefaultDockingPanel {
         c.fill = GridBagConstraints.BOTH;
         c.gridx = 0;
         c.gridy = 0;
+        c.insets = new Insets(2, 2, 2, 2);
 
-        addControl(c,"Diffusion A",model.getDiffusionA(), model::setDiffusionA,"diffusionA");
-        addControl(c,"Diffusion B",model.getDiffusionB(), model::setDiffusionB,"diffusionB");
-        addControl(c,"Feed rate",model.getFeedRate(), model::setFeedRate,"feedRate",0.01,0.10);
-        addControl(c,"Kill rate",model.getKillRate(), model::setKillRate,"killRate",0.045,0.07);
-
-        c.gridx=0;
         add(new JLabel("Paused?"),c);
         c.gridx++;
         c.gridwidth=2;
@@ -40,6 +37,14 @@ public class SettingsPanel extends DefaultDockingPanel {
             }
         });
         add(t,c);
+        c.gridy++;
+        c.gridwidth=1;
+
+        addControl(c,"Diffusion A",model.getDiffusionA(), model::setDiffusionA,"diffusionA");
+        addControl(c,"Diffusion B",model.getDiffusionB(), model::setDiffusionB,"diffusionB");
+        addControl(c,"Feed rate",model.getFeedRate(), model::setFeedRate,"feedRate",0.01,0.10);
+        addControl(c,"Kill rate",model.getKillRate(), model::setKillRate,"killRate",0.045,0.07);
+        addControl(c,"Paint radius",model.getPaintRadius(),model::setPaintRadius,"paintRadius",1,50);
     }
 
     private void addControl(GridBagConstraints c,String label, double start, Consumer<Double> consumer,String propertyName) {
