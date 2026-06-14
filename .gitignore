@@ -34,4 +34,4 @@ build/
 
 ### Mac OS ###
 .DS_Store
-/layout.json
+/layout.xml
