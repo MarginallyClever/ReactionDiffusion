@@ -42,19 +42,16 @@ public class MainWindow extends JFrame {
         add(root, BorderLayout.CENTER);
         setVisible(true);
 
-        AnchorDockable anchor = new AnchorDockable();
         SettingsPanel settings = new SettingsPanel(model,view);
 
-        Docking.registerDockable(anchor);
         Docking.registerDockable(output);
         Docking.registerDockable(settings);
 
-        Docking.dock(anchor, this, DockingRegion.CENTER);  // anchor
         Docking.dock(output, this, DockingRegion.CENTER);
-        Docking.dock(settings, anchor, DockingRegion.SOUTH);
+        Docking.dock(settings, output, DockingRegion.SOUTH);
 
         // auto-persist
-        AppState.setPersistFile(new File("layout.json"));
+        AppState.setPersistFile(new File("layout.xml"));
         AppState.setAutoPersist(true);
         try {
             AppState.restore();

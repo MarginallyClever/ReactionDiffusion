@@ -26,6 +26,7 @@ public class OutputPanel extends DefaultDockingPanel {
 
     public OutputPanel(Model model,View view) {
         super("OutputPanel","Output");
+        this.setFloatingAllowed(true);
         this.model = model;
         this.view = view;
         setLayout(new BorderLayout());
